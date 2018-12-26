@@ -37,14 +37,14 @@ def get_token(s):
     return token, s
 
 
-def parser(m, s):
+def parser(token, s):
 
-    if len(m) == 0 and len(s) == 0:
+    if len(token) == 0 and len(s) == 0:
         print("Unexpected EOF")
         return None
 
     s = s[1:]
-    if m == '(':
+    if token == '(':
 
         lst = []
         token, s = get_token(s)
@@ -62,20 +62,20 @@ def parser(m, s):
 
         return lst, s
 
-    elif m == ')':
+    elif token == ')':
         print("Unexpected )")
         return None
 
     else:
-        x = atom(m)
+        x = atom(token)
         return x, s
 
 
 if __name__ == '__main__':
 
     s = input().replace('(', ' ( ').replace(')', ' ) ')
-    m, s = get_token(s)
-    ps = parser(m, s)
+    token, s = get_token(s)
+    ps = parser(token, s)
 
     if ps is not None:
         s = ps[1].strip()
