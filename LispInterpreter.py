@@ -24,48 +24,6 @@ def atom(x):
             return str(x)
 
 
-"""def parser(m, s):
-
-    if len(s) == 0:
-        raise SyntaxError("Unexpected EOF")
-
-    print("m: ", m, "s: ", s)
-
-    # s = s.strip()
-
-    if m == '(':
-
-        lst = []
-        i = 1
-
-        token = ''
-        while i < len(s) and s[i] == ' ':
-            i += 1
-
-        while i < len(s) and s[i] != ' ':
-            token += s[i]
-            i += 1
-
-        print("token: ", token)
-        print("i: ", i, "s[i]: ", s[i])
-
-        while token != ')':
-
-            lst.append(parser(token, s[i:]))
-            print("lst: ", lst)
-            print("i: ", i, "len(s): ", len(s), "s[i]: ", s[i])
-
-            token = ''
-            while i < len(s) and s[i] == ' ':
-                i += 1
-
-            while i < len(s) and s[i] != ' ':
-                token += s[i]
-                i += 1
-
-        return lst"""
-
-
 def get_token(s):
 
     token = ''
@@ -129,6 +87,6 @@ if __name__ == '__main__':
         if len(s) == 0:
             print(ps[0])
         else:
-            print("None#*?")
+            print("Unexpected", s)
     else:
         print(ps)
