@@ -15,7 +15,6 @@ def remove_whitespace(s):
 
 def atom(x):
 
-    print("atom(x): ", x)
     try: 
         return int(x)
     except ValueError:
@@ -67,54 +66,55 @@ def atom(x):
         return lst"""
 
 
+def get_token(s):
+
+    token = ''
+    while len(s) > 0 and s[0] == ' ':
+        s = s[1:]
+
+    while len(s) > 0 and s[0] != ' ':
+        token += s[0]
+        s = s[1:]
+
+    return token, s
+
+
 def parser(m, s):
 
-    if len(s) == 0:
-        raise SyntaxError("Unexpected EOF")
-
     print("m: ", m, "s: ", s)
+    if len(m) == 0 and len(s) == 0:
+        print("Unexpected EOF")
+        return None
 
     s = s[1:]
+
     if m == '(':
 
         lst = []
 
-        token = ''
-        while len(s) > 0 and s[0] == ' ':
-            s = s[1:]
-
-        while len(s) > 0 and s[0] != ' ':
-            token += s[0]
-            s = s[1:]
-
+        token, s = get_token(s)
         print("token: ", token)
-        print("s[0]: ", s[0])
 
         while token != ')':
 
-            x, s = (parser(token, s))
-            lst.append(x)
-            print("lst: ", lst)
-            print("len(s): ", len(s), "s[0]: ", s[0])
+            x = (parser(token, s))
+            if x is None:
+                return None
 
-            token = ''
-            while len(s) > 0 and s[0] == ' ':
-                s = s[1:]
+            s = x[1]
+            lst.append(x[0])
 
-            while len(s) > 0 and s[0] != ' ':
-                token += s[0]
-                s = s[1:]
-
+            token, s = get_token(s)
             print("token#: ", token)
 
         return lst, s
 
     elif m == ')':
-        raise SyntaxError("Unexpected EOF")
+        print("Unexpected )")
+        return None
 
     else:
         x = atom(m)
-        print("Return value of atom(): ", x)
         return x, s
 
 
@@ -122,7 +122,13 @@ if __name__ == '__main__':
 
     s = input()
     s = s.replace('(', ' ( ').replace(')', ' ) ')
-    print("s: ", s)
-    s = remove_whitespace(s)
-    ps = parser(s[0], s)
-    print(ps)
+    m, s = get_token(s)
+    ps = parser(m, s)
+    if ps is not None:
+        s = ps[1].strip()
+        if len(s) == 0:
+            print(ps[0])
+        else:
+            print("None#*?")
+    else:
+        print(ps)
