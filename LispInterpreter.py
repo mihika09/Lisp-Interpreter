@@ -4,13 +4,13 @@ import operator as op
 check_whitespace = [' ', '\n', '\t']
 
 
-def remove_whitespace(s):
+"""def remove_whitespace(s):
 
     i = 0
     while i < len(s) and s[i] in check_whitespace:
         i += 1
     s = s[i:]
-    return s
+    return s"""
 
 
 def atom(x):
@@ -73,15 +73,16 @@ def parser(m, s):
 
 if __name__ == '__main__':
 
-    s = input()
-    s = s.replace('(', ' ( ').replace(')', ' ) ')
+    s = input().replace('(', ' ( ').replace(')', ' ) ')
     m, s = get_token(s)
     ps = parser(m, s)
+
     if ps is not None:
         s = ps[1].strip()
         if len(s) == 0:
             print(ps[0])
         else:
-            print("Unexpected", s)
-    else:
-        print(ps)
+            print("Unexpected: ", s)
+
+    # else:
+    #    print("Incorrect Input")
