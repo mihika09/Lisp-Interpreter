@@ -39,19 +39,15 @@ def get_token(s):
 
 def parser(m, s):
 
-    print("m: ", m, "s: ", s)
     if len(m) == 0 and len(s) == 0:
         print("Unexpected EOF")
         return None
 
     s = s[1:]
-
     if m == '(':
 
         lst = []
-
         token, s = get_token(s)
-        print("token: ", token)
 
         while token != ')':
 
@@ -63,7 +59,6 @@ def parser(m, s):
             lst.append(x[0])
 
             token, s = get_token(s)
-            print("token#: ", token)
 
         return lst, s
 
