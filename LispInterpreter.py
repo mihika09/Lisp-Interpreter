@@ -133,6 +133,7 @@ def parser(token, s, env):
 
 
 if __name__ == '__main__':
+
     s = input().replace('(', ' ( ').replace(')', ' ) ')
     global_env = standard_env()
     token, s = get_token(s)
