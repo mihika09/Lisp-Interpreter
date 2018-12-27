@@ -1,17 +1,5 @@
 import math
 import operator as op
-from collections import ChainMap as Environment
-
-
-"""class Procedure(object):
-    # "A user-defined Scheme procedure."
-
-    def __init__(self, parms, body, env):
-        self.parms, self.body, self.env = parms, body, env
-
-    def __call__(self, *args):
-        env =  Environment(dict(zip(self.parms, args)), self.env)
-        return eval(self.body, env)"""
 
 
 def standard_env():
@@ -19,8 +7,15 @@ def standard_env():
     env = {}
     env.update(vars(math))  # sin, cos, sqrt, pi, ...
     env.update({
-        '+': op.add, '-': op.sub, '*': op.mul, '/': op.truediv,
-        '>': op.gt, '<': op.lt, '>=': op.ge, '<=': op.le, '=': op.eq,
+        '+': op.add,
+        '-': op.sub,
+        '*': op.mul,
+        '/': op.truediv,
+        '>': op.gt,
+        '<': op.lt,
+        '>=': op.ge,
+        '<=': op.le,
+        '=': op.eq,
         'abs': abs,
         'append': op.add,
         'apply': lambda proc, args: proc(*args),
@@ -46,51 +41,6 @@ def standard_env():
     return env
 
 
-def eval(x, env):
-
-    print("x: ", x)
-
-    if isinstance(x, str):  # variable reference
-        return env[x]
-
-    elif not isinstance(x, list):  # constant literal
-        return x
-
-    elif isinstance(x, (int, float)):      # constant number
-        return x
-
-    elif x[0] == 'if':               # conditional
-        (_, test, conseq, alt) = x
-        exp = (conseq if eval(test, env) else alt)
-        return eval(exp, env)
-
-    elif x[0] == 'define':           # definition
-        (_, symbol, exp) = x
-        env[symbol] = eval(exp, env)  # adding a new key in env with var_name as key name and the corresponding value
-
-    else:
-
-        print("x[0]: ", x[0])
-        proc = eval(x[0], env)
-        print("proc: ", proc)
-
-        args = [eval(arg, env) for arg in x[1:]]
-        print("args: ", args)
-        print("proc: ", proc)
-        return proc(*args)
-
-
-def atom(x):
-
-    try: 
-        return int(x)
-    except ValueError:
-        try:
-            return float(x)
-        except ValueError:
-            return str(x)
-
-
 def get_token(s):
 
     token = ''
@@ -104,55 +54,87 @@ def get_token(s):
     return token, s
 
 
-def parser(token, s):
+def num_parser(token):
 
-    if len(token) == 0 and len(s) == 0:
-        print("Unexpected EOF")
-        return None
+    try: return int(token)
+    except ValueError:
+        try: return float(token)
+        except ValueError: return str(token)
 
-    # s = s[1:]
-    if token == '(':
 
-        lst = []
+def define_parser(s, env):
+    var, s = get_token(s)
+    print("var: ", var)
+    exp, s = get_token(s)
+    print("exp: ", exp)
+    eval, s = parser(exp, s, env)
+    print("eval: ", eval)
+    env[var] = eval
+    return None, s
+
+
+def eval_exp(s, env):
+
+    token, s = get_token(s)
+    print("tokenp: ", token)
+    if token != ')':
+        proc, s = parser(token, s, env)
+        print("proc: ", proc, "s: ", s)
+
+    token, s = get_token(s)
+    print("tokenm: ", token)
+
+    if token == ')':
+        return None, s
+
+    args = []
+    while len(token) > 0 and token != ')':
+        print("tokena: ", token)
+        x, s = parser(token, s, env)
+        print("x: ", x, "s: ", s)
+        args.append(x)
+        print("args: ", args)
         token, s = get_token(s)
 
-        while token != ')':
+    if token!= ')':
+        return None, s
 
-            x = (parser(token, s))
-            if x is None:
-                return None
+    try:
+        return proc(*args), s
+    except TypeError:
+        return None, s
 
-            s = x[1]
-            lst.append(x[0])
 
-            token, s = get_token(s)
+def parser(token, s, env):
 
-        return lst, s
+    x = num_parser(token)
+    if isinstance(x, (int, float)):
+        print("x-:", x, "s: ", s)
+        return x, s
 
-    elif token == ')':
+    if x == 'define':
+        print("Inside define call")
+        return define_parser(s, env)
+
+    # elif x == 'if':
+    #    if_parser(s)
+
+    elif x == '(':
+        y, s = eval_exp(s, env)
+        print("y: ", y, "s: ", s)
+        return y, s
+
+    elif x == ')':
         print("Unexpected )")
         return None
 
     else:
-        x = atom(token)
-        return x, s
+        return env[x], s
 
 
 if __name__ == '__main__':
-
     s = input().replace('(', ' ( ').replace(')', ' ) ')
+    global_env = standard_env()
     token, s = get_token(s)
-    ps = parser(token, s)
-
-    if ps is not None:
-        s = ps[1].strip()
-        if len(s) == 0:
-            env = standard_env()
-            print(ps[0])
-            # print(eval(ps[0], env))
-
-        else:
-            print("Unexpected: ", s)
-
-    # else:
-    #    print("Incorrect Input")
+    result = parser(token, s, global_env)
+    print("result-: ", result[0])
