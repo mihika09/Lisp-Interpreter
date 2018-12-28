@@ -140,6 +140,7 @@ def eval_exp(s, env):
         token, s = get_token(s)
 
     if token != ')':
+        print("Invalid InputMissing )")
         return None, s
 
     try:
