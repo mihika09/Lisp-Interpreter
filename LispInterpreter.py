@@ -62,6 +62,44 @@ def num_parser(token):
         except ValueError: return str(token)
 
 
+def get_if_attr(s, env):
+
+    attr, s = get_token(s)
+    print("attr: ", attr)
+    if attr == '(':
+        temp, s = get_token(s)
+        print("temp: ", temp)
+        while temp != ')':
+            attr = attr + temp + ' '
+            temp, s = get_token(s)
+        attr += ')'
+        attr_eval, t = parser(attr[0], attr[1:], env)
+
+    else:
+        attr_eval, t = parser(attr, s, env)
+
+    return attr_eval, s
+
+
+def if_parser(s, env):
+
+    print("Inside if Parser")
+    test, s = get_if_attr(s, env)
+    print("test: ", test, "s: ", s)
+    conseq, s = get_if_attr(s, env)
+    print("conseq: ", conseq)
+    alt, s = get_if_attr(s, env)
+    print("alt: ", alt)
+    """test_eval, s = parser(test, s, env)
+    print("test_eval: ", test_eval)"""
+    if test:
+        print("Conseq")
+        return conseq, s
+    else:
+        print("Alt:")
+        return alt, s
+
+
 def define_parser(s, env):
     var, s = get_token(s)
     print("var: ", var)
@@ -78,14 +116,19 @@ def eval_exp(s, env):
     token, s = get_token(s)
     print("tokenp: ", token)
     if token != ')':
-        proc, s = parser(token, s, env)
-        print("proc: ", proc, "s: ", s)
+
+        if token == 'if':
+            res, s = parser(token, s, env)
+            return res, s
+        else:
+            proc, s = parser(token, s, env)
+            print("proc: ", proc, "s: ", s)
 
     token, s = get_token(s)
     print("tokenm: ", token)
 
     if token == ')':
-        return None, s
+        return None, s  # (if (= 10 10) (30) (40))  (begin (define r 10) (* pi (* r r)))
 
     args = []
     while len(token) > 0 and token != ')':
@@ -108,6 +151,7 @@ def eval_exp(s, env):
 def parser(token, s, env):
 
     x = num_parser(token)
+    print("x: ", x)
     if isinstance(x, (int, float)):
         print("x-:", x, "s: ", s)
         return x, s
@@ -116,8 +160,9 @@ def parser(token, s, env):
         print("Inside define call")
         return define_parser(s, env)
 
-    # elif x == 'if':
-    #    if_parser(s)
+    elif x == 'if':
+            print("Inside If call")
+            return if_parser(s, env)
 
     elif x == '(':
         y, s = eval_exp(s, env)
@@ -129,6 +174,7 @@ def parser(token, s, env):
         return None
 
     else:
+        print("x-: ", x)
         return env[x], s
 
 
