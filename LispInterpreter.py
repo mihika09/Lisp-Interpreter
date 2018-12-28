@@ -1,6 +1,8 @@
 import math
 import operator as op
 
+special_strings = ["define", "if"]
+
 
 def standard_env():
 
@@ -56,9 +58,11 @@ def get_token(s):
 
 def num_parser(token):
 
-    try: return int(token)
+    try:
+        return int(token)
     except ValueError:
-        try: return float(token)
+        try:
+            return float(token)
         except ValueError: return str(token)
 
 
@@ -108,21 +112,23 @@ def define_parser(s, env):
     eval, s = parser(exp, s, env)
     print("eval: ", eval)
     env[var] = eval
+    check, s = get_token(s)
     return None, s
 
 
 def eval_exp(s, env):
 
     token, s = get_token(s)
-    print("tokenp: ", token)
-    if token != ')':
+    if token == ')':
+        return '()'
 
-        if token == 'if':
-            res, s = parser(token, s, env)
-            return res, s
-        else:
-            proc, s = parser(token, s, env)
-            print("proc: ", proc, "s: ", s)
+    proc, s = parser(token, s, env)
+    print("proc: ", proc, "s: ", s)
+
+    if token in special_strings:
+        return proc, s
+
+    print("proc: ", proc, "s: ", s)
 
     token, s = get_token(s)
     print("tokenm: ", token)
@@ -139,7 +145,8 @@ def eval_exp(s, env):
         print("args: ", args)
         token, s = get_token(s)
 
-    if token!= ')':
+    if token != ')':
+        print("Missing )")
         return None, s
 
     try:
@@ -175,7 +182,10 @@ def parser(token, s, env):
 
     else:
         print("x-: ", x)
-        return env[x], s
+        try:
+            return env[x], s
+        except KeyError:
+            raise SyntaxError("Key Error")
 
 
 if __name__ == '__main__':
@@ -183,5 +193,13 @@ if __name__ == '__main__':
     s = input().replace('(', ' ( ').replace(')', ' ) ')
     global_env = standard_env()
     token, s = get_token(s)
-    result = parser(token, s, global_env)
-    print("result-: ", result[0])
+    result, s = parser(token, s, global_env)
+    while len(s) > 0 and s[0] == ' ':
+        s = s[1:]
+    if len(s) == 0:
+        if result is not None:
+            print(result)
+        else:
+            print("No output")
+    else:
+        print("Invalid input: ", s)
