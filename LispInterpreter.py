@@ -66,83 +66,52 @@ def num_parser(token):
         except ValueError: return str(token)
 
 
-"""def fun(temp, s):
+def fun(attr, temp, s):
 
-    attr = ''
     while temp != ')':
 
         attr = attr + temp + ' '
         temp, s = get_token(s)
         if temp == '(':
-            fun(attr, s)
+            attr, s = fun(attr, temp, s)
+            temp, s = get_token(s)
 
     attr += ')'
-    print("attr_final: ", attr)
     return attr, s
 
 
 def get_if_attr(s, env):
 
     attr, s = get_token(s)
-    print("attr: ", attr)
     if attr == '(':
-        attr_eval, s = fun(attr, s)
-        attr_eval, _ = parser(attr[0], attr[1:], env)
+        attr, s = fun(attr, '', s)
+        attr = attr.replace('(', ' ( ').replace(')', ' ) ')
+        token, strn = get_token(attr)
+        attr_eval, _ = parser(token, strn, env)
 
     else:
         attr_eval, _ = parser(attr, s, env)
-
-    return attr_eval, s"""
-
-
-def get_if_attr(s, env):
-
-    attr, s = get_token(s)
-    print("attr: ", attr)
-    if attr == '(':
-        temp, s = get_token(s)
-        print("temp: ", temp)
-        while temp != ')':
-            attr = attr + temp + ' '
-            temp, s = get_token(s)
-        attr += ')'
-        print("attr_final: ", attr)
-        attr_eval, t = parser(attr[0], attr[1:], env)
-
-    else:
-        attr_eval, t = parser(attr, s, env)
 
     return attr_eval, s
 
 
 def if_parser(s, env):
 
-    print("Inside if Parser")
     test, s = get_if_attr(s, env)
-    print("test: ", test, "s: ", s)
     conseq, s = get_if_attr(s, env)
-    print("conseq: ", conseq)
     alt, s = get_if_attr(s, env)
-    print("alt: ", alt)
-    """test_eval, s = parser(test, s, env)
-    print("test_eval: ", test_eval)"""
     if test:
-        print("Conseq")
         _, s = get_token(s)
         return conseq, s
     else:
-        print("Alt:")
         _, s = get_token(s)
         return alt, s
 
 
 def define_parser(s, env):
     var, s = get_token(s)
-    print("var: ", var)
     exp, s = get_token(s)
-    print("exp: ", exp)
     eval, s = parser(exp, s, env)
-    print("eval: ", eval)
     env[var] = eval
     check, s = get_token(s)
     return None, s
@@ -151,36 +120,26 @@ def define_parser(s, env):
 def eval_exp(s, env):
 
     token, s = get_token(s)
-    print("tokenp: ", token)
     if token == ')':
         return '()'
 
     proc, s = parser(token, s, env)
-    print("proc: ", proc, "s: ", s)
 
     if token in special_strings:
-        print("Hey")
         return proc, s
 
-    print("proc: ", proc, "s: ", s)
-
     token, s = get_token(s)
-    print("tokenm: ", token)
 
     if token == ')':
-        return None, s  # (if (= 10 10) (30) (40))  (begin (define r 10) (* pi (* r r)))
+        return None, s
 
     args = []
     while len(token) > 0 and token != ')':
-        print("tokena: ", token)
         x, s = parser(token, s, env)
-        print("x: ", x, "s: ", s)
         args.append(x)
-        print("args: ", args)
         token, s = get_token(s)
 
     if token != ')':
-        print("Missing )")
         return None, s
 
     try:
@@ -192,22 +151,17 @@ def eval_exp(s, env):
 def parser(token, s, env):
 
     x = num_parser(token)
-    print("x: ", x)
     if isinstance(x, (int, float)):
-        print("x-:", x, "s: ", s)
         return x, s
 
     if x == 'define':
-        print("Inside define call")
         return define_parser(s, env)
 
     elif x == 'if':
-            print("Inside If call")
-            return if_parser(s, env)
+        return if_parser(s, env)
 
     elif x == '(':
         y, s = eval_exp(s, env)
-        print("y: ", y, "s: ", s)
         return y, s
 
     elif x == ')':
@@ -215,11 +169,12 @@ def parser(token, s, env):
         return None
 
     else:
-        print("x-: ", x)
+        if x == '':
+            exit()
         try:
             return env[x], s
         except KeyError:
-            raise SyntaxError("Key Error")
+            return x, s
 
 
 if __name__ == '__main__':
@@ -228,15 +183,13 @@ if __name__ == '__main__':
 
         global_env = standard_env()
         while True:
-            s = input().replace('(', ' ( ').replace(')', ' ) ')
+            s = input('>> ').replace('(', ' ( ').replace(')', ' ) ')
             token, s = get_token(s)
             result, s = parser(token, s, global_env)
             while len(s) > 0 and s[0] == ' ':
                 s = s[1:]
 
-            print("s: ", s, "len(s): ", len(s))
             if len(s) == 0:
-                print("result: ", result)
                 if result is not None:
                     print(schemestr(result))
 
