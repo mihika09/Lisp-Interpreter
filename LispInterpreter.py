@@ -1,7 +1,20 @@
 import math
 import operator as op
+from collections import ChainMap as Environment
 
-special_strings = ["define", "if"]
+special_strings = ["define", "if", "lambda"]
+
+
+class Procedure(object):
+
+    def __init__(self, parms, body, env):
+        self.parms, self.body, self.env = parms, body, env
+
+    def __call__(self, *args):
+        env = Environment(dict(zip(self.parms, args)), self.env)
+        x, t = get_token(self.body)
+        px, sx = parser(x, t, env)
+        return px
 
 
 def standard_env():
@@ -50,7 +63,7 @@ def get_token(s):
         s = s[1:]
 
     while len(s) > 0 and s[0] != ' ':
-        token += s[0]
+        token += str(s[0])
         s = s[1:]
 
     return token, s
@@ -98,34 +111,65 @@ def get_if_attr(s, env):
 def if_parser(s, env):
 
     test, s = get_if_attr(s, env)
-    conseq, s = get_if_attr(s, env)
-    alt, s = get_if_attr(s, env)
+
     if test:
+        conseq, s = get_if_attr(s, env)
+        attr, s = get_token(s)
+        if attr == '(':
+            attr, s = fun(attr, '', s)
         _, s = get_token(s)
         return conseq, s
-    else:
-        _, s = get_token(s)
-        return alt, s
+
+    attr, s = get_token(s)
+    if attr == '(':
+        attr, s = fun(attr, '', s)
+    alt, s = get_if_attr(s, env)
+    _, s = get_token(s)
+    return alt, s
+
+
+def get_lambda_attr(s, env):
+    attr, s = get_token(s)
+    if attr == '(':
+        attr, s = fun(attr, '', s)
+        attr = attr.replace('(', ' ( ').replace(')', ' ) ')
+        # print("attr after: ", attr)
+
+    return attr, s
+
+
+def lambda_parser(s, env):
+
+    parms, s = get_lambda_attr(s, env)
+    body, s = get_lambda_attr(s, env)
+    parms = list(parms.split())
+    parms = parms[1]
+    _, s = get_token(s)
+    print("parms: ", parms, "body: ", body, "s: ", s)
+    return Procedure(parms, body, env), s
 
 
 def define_parser(s, env):
     var, s = get_token(s)
     exp, s = get_token(s)
-    eval, s = parser(exp, s, env)
-    env[var] = eval
-    check, s = get_token(s)
+    eval_exp, s = parser(exp, s, env)
+    env[var] = eval_exp
+    _, s = get_token(s)
     return None, s
 
 
 def eval_exp(s, env):
 
     token, s = get_token(s)
+    print("tokenp: ", token)
     if token == ')':
         return '()'
 
     proc, s = parser(token, s, env)
+    print("proc: ", proc, "s: ", s)
 
     if token in special_strings:
+        print("Hey")
         return proc, s
 
     token, s = get_token(s)
@@ -135,28 +179,31 @@ def eval_exp(s, env):
 
     args = []
     while len(token) > 0 and token != ')':
+        print("tokena: ", token)
         x, s = parser(token, s, env)
         args.append(x)
+        print("args: ", args)
         token, s = get_token(s)
 
     if token != ')':
         print("Invalid InputMissing )")
         return None, s
 
-    try:
-        return proc(*args), s
-    except TypeError:
-        return None, s
+    return proc(*args), s
 
 
 def parser(token, s, env):
 
     x = num_parser(token)
+    print("x: ", x)
     if isinstance(x, (int, float)):
         return x, s
 
     if x == 'define':
         return define_parser(s, env)
+
+    elif x == 'lambda':
+        return lambda_parser(s, env)
 
     elif x == 'if':
         return if_parser(s, env)
@@ -190,12 +237,13 @@ if __name__ == '__main__':
             while len(s) > 0 and s[0] == ' ':
                 s = s[1:]
 
+            print("s: ", s)
             if len(s) == 0:
                 if result is not None:
-                    print(schemestr(result))
+                    print("result: ", schemestr(result))
 
             else:
-                print("Invalid Input")
+                print("Invalid Inputs")
 
 
     def schemestr(exp):
@@ -203,6 +251,8 @@ if __name__ == '__main__':
         if isinstance(exp, list):
             return '(' + ' '.join(map(schemestr, exp)) + ')'
         else:
-            return str(exp)
+            try: return str(exp)
+            except TypeError:
+                return str(exp)
 
     repl()
