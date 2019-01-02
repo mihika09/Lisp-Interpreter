@@ -6,6 +6,7 @@ from collections import ChainMap as Environment
 special_strings = ["define", "if", "lambda"]
 sys.setrecursionlimit(2000)
 
+
 class Procedure(object):
 
     def __init__(self, parms, body, env):
@@ -34,6 +35,7 @@ def standard_env():
         '=': op.eq,
         'abs': abs,
         'append': op.add,
+        'expt': op.pow,
         'apply': lambda proc, args: proc(*args),
         'begin': lambda *x: x[-1],
         'car': lambda x: x[0],
@@ -57,17 +59,20 @@ def standard_env():
     return env
 
 
-def get_token(s):
+env = standard_env()
 
-    token = ''
+
+def get_identifier(s):
+
+    iden = ''
     while len(s) > 0 and s[0] == ' ':
         s = s[1:]
 
     while len(s) > 0 and s[0] != ' ':
-        token += str(s[0])
+        iden += str(s[0])
         s = s[1:]
 
-    return token, s
+    return iden, s
 
 
 def num_parser(token):
@@ -85,158 +90,176 @@ def fun(attr, temp, s):
     while temp != ')':
 
         attr = attr + temp + ' '
-        temp, s = get_token(s)
+        temp, s = get_identifier(s)
         if temp == '(':
             attr, s = fun(attr, temp, s)
-            temp, s = get_token(s)
+            temp, s = get_identifier(s)
 
     attr += ')'
     return attr, s
 
 
-def get_if_attr(s, env):
+def get_if_attr(s):
 
-    attr, s = get_token(s)
+    attr, s = get_identifier(s)
     if attr == '(':
         attr, s = fun(attr, '', s)
         attr = attr.replace('(', ' ( ').replace(')', ' ) ')
-        token, strn = get_token(attr)
-        attr_eval, _ = parser(token, strn, env)
+        print("attr: ", attr)
+        token, strn = get_identifier(attr)
+        print("token, strn: ", token, strn)
+        attr_eval, _ = eval_exp(token, strn)
 
     else:
-        attr_eval, _ = parser(attr, s, env)
+        attr_eval, _ = eval_exp(attr, s)
 
     return attr_eval, s
 
 
-def if_parser(s, env):
+def if_parser(s):
 
-    test, s = get_if_attr(s, env)
+    print("If_Parser")
+    test, s = get_if_attr(s)
+
     print("test: ", test)
 
     if test:
-        conseq, s = get_if_attr(s, env)
-        print("conseq: ", conseq)
-        attr, s = get_token(s)
+        conseq, s = get_if_attr(s)
+        attr, s = get_identifier(s)
         if attr == '(':
             attr, s = fun(attr, '', s)
-        _, s = get_token(s)
+        print("conseq: ", conseq, "s: ", s)
         return conseq, s
 
-    attr, s = get_token(s)
+    attr, s = get_identifier(s)
     if attr == '(':
         attr, s = fun(attr, '', s)
-    alt, s = get_if_attr(s, env)
-    _, s = get_token(s)
+    alt, s = get_if_attr(s)
+    print("alt: ", alt, "s: ", s)
     return alt, s
 
 
-def get_lambda_attr(s, env):
-    attr, s = get_token(s)
-    if attr == '(':
-        attr, s = fun(attr, '', s)
-        attr = attr.replace('(', ' ( ').replace(')', ' ) ')
-        # print("attr after: ", attr)
-
-    return attr, s
-
-
-def lambda_parser(s, env):
-
-    parms, s = get_lambda_attr(s, env)
-    body, s = get_lambda_attr(s, env)
-    parms = list(parms.split())
-    parms = parms[1]
-    _, s = get_token(s)
-    print("parms: ", parms, "body: ", body, "s: ", s)
-    return Procedure(parms, body, env), s
-
-
-def define_parser(s, env):
-    var, s = get_token(s)
-    exp, s = get_token(s)
-    eval_exp, s = parser(exp, s, env)
-    env[var] = eval_exp
-    _, s = get_token(s)
+def define_parser(s):
+    var, s = get_identifier(s)
+    exp, s = get_identifier(s)
+    exp_eval, s = eval_exp(exp, s)
+    env[var] = exp_eval
     return None, s
 
 
-def eval_exp(s, env):
+def eval_exp(iden, s):
 
-    token, s = get_token(s)
-    print("tokenp: ", token)
-    if token == ')':
-        return '()'
+    print("idenee: ", iden, "s: ", s)
 
-    proc, s = parser(token, s, env)
-    print("proc: ", proc, "s: ", s)
+    while iden != ')':
 
-    if token in special_strings:
-        print("Hey")
-        return proc, s
+        if iden == '(':
+            iden, s = get_identifier(s)
+            return eval_exp(iden, s)
 
-    token, s = get_token(s)
+        elif iden == 'define':
+            proc, s = define_parser(s)
+            iden, s = get_identifier(s)
+            print("iden: ", iden, "s: ", s)
 
-    if token == ')':
-        return None, s
+        elif iden == 'if':
+            proc, s = if_parser(s)
+            iden, s = get_identifier(s)
+            print("proc_if :", proc, "s: ",s)
 
-    args = []
-    while len(token) > 0 and token != ')':
-        print("tokena: ", token)
-        x, s = parser(token, s, env)
-        args.append(x)
-        print("args: ", args)
-        token, s = get_token(s)
+        else:
+            x = num_parser(iden)
+            if isinstance(x, (int, float)):
+                return x, s
 
-    if token != ')':
-        print("Invalid InputMissing )")
-        return None, s
+            else:
+                try:
+                    print("env[x]: ", env[x])
+                    proc = env[x]
+                    if isinstance(proc, (int, float)):
+                        # invalid as '(' needs to be followed by a procedure
+                        return None, s
 
-    return proc(*args), s
+                    print("proc: ", proc, "s: ", s)
+
+                    iden, s = get_identifier(s)
+                    args = []
+                    print("iden: ", iden, "args: ", args)
+                    while len(iden) > 0 and iden != ')':
+                        print("tokena: ", iden)
+                        try:
+                            x = env[iden]
+                            print("x: ", x)
+                            args.append(x)
+
+                        except KeyError:
+                            x, s = eval_exp(iden, s)
+                            args.append(x)
+
+                        print("args: ", args)
+                        iden, s = get_identifier(s)
+
+                    if iden != ')':
+                        print("Invalid InputMissing )")
+                        return None, s
+
+                    print("proc: ", proc, "args: ", args)
+                    try:
+                        y = proc(*args)
+                    except TypeError:
+                        print("Type Error")
+                        return None, s
+
+                    print("y: ", y, "s: ", s)
+                    return y, s
+
+                except KeyError:
+                    print("Error: Unbound symbol \'{}\'".format(x))
+                    return None, s
+
+    return proc, s
 
 
-def parser(token, s, env):
+def parse_eval(s):
 
-    x = num_parser(token)
-    print("x: ", x)
-    if isinstance(x, (int, float)):
-        return x, s
+    iden, s = get_identifier(s)
 
-    if x == 'define':
-        return define_parser(s, env)
+    if iden == '(':
+        iden, s = get_identifier(s)
+        x, y = eval_exp(iden, s)
+        print("x: ", x, "y: ", y)
+        return x, y
+        # return None, s
 
-    elif x == 'lambda':
-        return lambda_parser(s, env)
-
-    elif x == 'if':
-        return if_parser(s, env)
-
-    elif x == '(':
-        y, s = eval_exp(s, env)
-        return y, s
-
-    elif x == ')':
+    elif iden == ')':
         print("Unexpected )")
-        return None
+        return None, s
 
     else:
-        if x == '':
-            exit()
-        try:
-            return env[x], s
-        except KeyError:
+        x = num_parser(iden)
+        if isinstance(x, (int, float)):
             return x, s
+
+        else:
+            try:
+                return env[x], s
+            except KeyError:
+                print("Error: Unbound symbol \'{}\'".format(x))
+                return None, s
 
 
 if __name__ == '__main__':
 
     def repl():
 
-        global_env = standard_env()
         while True:
+
             s = input('>> ').replace('(', ' ( ').replace(')', ' ) ')
-            token, s = get_token(s)
-            result, s = parser(token, s, global_env)
+
+            if s == '':
+                exit()
+
+            result, s = parse_eval(s)
             while len(s) > 0 and s[0] == ' ':
                 s = s[1:]
 
@@ -254,7 +277,8 @@ if __name__ == '__main__':
         if isinstance(exp, list):
             return '(' + ' '.join(map(schemestr, exp)) + ')'
         else:
-            try: return str(exp)
+            try:
+                return str(exp)
             except TypeError:
                 return str(exp)
 
