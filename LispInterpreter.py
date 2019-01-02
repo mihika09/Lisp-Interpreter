@@ -14,8 +14,7 @@ class Procedure(object):
 
     def __call__(self, *args):
         env = Environment(dict(zip(self.parms, args)), self.env)
-        x, t = get_token(self.body)
-        px, sx = parser(x, t, env)
+        px, sx = parse_eval(self.body)
         return px
 
 
@@ -59,9 +58,6 @@ def standard_env():
     return env
 
 
-env = standard_env()
-
-
 def get_identifier(s):
 
     iden = ''
@@ -99,7 +95,7 @@ def fun(attr, temp, s):
     return attr, s
 
 
-def get_if_attr(s):
+def get_if_attr(s, env):
 
     attr, s = get_identifier(s)
     if attr == '(':
@@ -108,23 +104,23 @@ def get_if_attr(s):
         print("attr: ", attr)
         token, strn = get_identifier(attr)
         print("token, strn: ", token, strn)
-        attr_eval, _ = eval_exp(token, strn)
+        attr_eval, _ = eval_exp(token, strn, env)
 
     else:
-        attr_eval, _ = eval_exp(attr, s)
+        attr_eval, _ = eval_exp(attr, s, env)
 
     return attr_eval, s
 
 
-def if_parser(s):
+def if_parser(s, env):
 
     print("If_Parser")
-    test, s = get_if_attr(s)
+    test, s = get_if_attr(s, env)
 
     print("test: ", test)
 
     if test:
-        conseq, s = get_if_attr(s)
+        conseq, s = get_if_attr(s, env)
         attr, s = get_identifier(s)
         if attr == '(':
             attr, s = fun(attr, '', s)
@@ -134,20 +130,39 @@ def if_parser(s):
     attr, s = get_identifier(s)
     if attr == '(':
         attr, s = fun(attr, '', s)
-    alt, s = get_if_attr(s)
+    alt, s = get_if_attr(s, env)
     print("alt: ", alt, "s: ", s)
     return alt, s
 
 
-def define_parser(s):
+def define_parser(s, env):
     var, s = get_identifier(s)
     exp, s = get_identifier(s)
-    exp_eval, s = eval_exp(exp, s)
+    exp_eval, s = eval_exp(exp, s, env)
     env[var] = exp_eval
     return None, s
 
 
-def eval_exp(iden, s):
+def get_lambda_attr(s):
+    attr, s = get_identifier(s)
+    if attr == '(':
+        attr, s = fun(attr, '', s)
+        attr = attr.replace('(', ' ( ').replace(')', ' ) ')
+        # print("attr after: ", attr)
+
+    return attr, s
+
+
+def lambda_parser(s):
+
+    parms, s = get_lambda_attr(s)
+    body, s = get_lambda_attr(s)
+    parms = list(parms.split())
+    parms = parms[1]
+    return Procedure(parms, body), s
+
+
+def eval_exp(iden, s, env):
 
     print("idenee: ", iden, "s: ", s)
 
@@ -155,17 +170,22 @@ def eval_exp(iden, s):
 
         if iden == '(':
             iden, s = get_identifier(s)
-            return eval_exp(iden, s)
+            return eval_exp(iden, s, env)
 
         elif iden == 'define':
-            proc, s = define_parser(s)
+            proc, s = define_parser(s, env)
             iden, s = get_identifier(s)
             print("iden: ", iden, "s: ", s)
 
         elif iden == 'if':
-            proc, s = if_parser(s)
+            proc, s = if_parser(s, env)
             iden, s = get_identifier(s)
             print("proc_if :", proc, "s: ",s)
+
+        elif iden == 'lambda':
+            proc, s = lambda_parser(s)
+            iden, s = get_identifier(s)
+            print("proc_lambda: ", proc, "s: ", s)
 
         else:
             x = num_parser(iden)
@@ -193,7 +213,7 @@ def eval_exp(iden, s):
                             args.append(x)
 
                         except KeyError:
-                            x, s = eval_exp(iden, s)
+                            x, s = eval_exp(iden, s, env)
                             args.append(x)
 
                         print("args: ", args)
@@ -220,13 +240,13 @@ def eval_exp(iden, s):
     return proc, s
 
 
-def parse_eval(s):
+def parse_eval(s, env):
 
     iden, s = get_identifier(s)
 
     if iden == '(':
         iden, s = get_identifier(s)
-        x, y = eval_exp(iden, s)
+        x, y = eval_exp(iden, s, env)
         print("x: ", x, "y: ", y)
         return x, y
         # return None, s
@@ -256,10 +276,12 @@ if __name__ == '__main__':
 
             s = input('>> ').replace('(', ' ( ').replace(')', ' ) ')
 
+            global_env = standard_env()
+
             if s == '':
                 exit()
 
-            result, s = parse_eval(s)
+            result, s = parse_eval(s, global_env)
             while len(s) > 0 and s[0] == ' ':
                 s = s[1:]
 
