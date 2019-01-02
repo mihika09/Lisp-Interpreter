@@ -1,9 +1,10 @@
+import sys
 import math
 import operator as op
 from collections import ChainMap as Environment
 
 special_strings = ["define", "if", "lambda"]
-
+sys.setrecursionlimit(2000)
 
 class Procedure(object):
 
@@ -111,9 +112,11 @@ def get_if_attr(s, env):
 def if_parser(s, env):
 
     test, s = get_if_attr(s, env)
+    print("test: ", test)
 
     if test:
         conseq, s = get_if_attr(s, env)
+        print("conseq: ", conseq)
         attr, s = get_token(s)
         if attr == '(':
             attr, s = fun(attr, '', s)
