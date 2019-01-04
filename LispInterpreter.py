@@ -285,9 +285,7 @@ def eval_exp(s, env):
             args.append(1)
         elif x is False:
             args.append(0)
-        elif x is None:
-            print("Yoyoyooooooooooooo")
-        else:
+        elif x is not None:
             args.append(x)
 
         print("args: ", args)
