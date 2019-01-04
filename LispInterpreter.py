@@ -4,6 +4,7 @@ import operator as op
 from collections import ChainMap as Environment
 
 special_strings = ["define", "if", "lambda", "quote"]
+arith_op = [op.add, op.sub, op.mul]
 sys.setrecursionlimit(2000)
 
 
@@ -141,10 +142,6 @@ def get_lambda_attr(s, env):
     return attr, s
 
 
-def get_parms(s, env):
-
-
-
 def lambda_parser(s, env):
 
     parms, s = get_lambda_attr(s, env)
@@ -218,6 +215,16 @@ def eval_exp(s, env):
         print("Invalid InputMissing )")
         return None, s
 
+    print("proc: ", proc, "args: ", args)
+
+    if proc in arith_op:
+        i = args[0]
+        args = args[1:]
+        for j in args:
+            i = proc(i, j)
+
+        return i, s
+
     return proc(*args), s
 
 
@@ -284,7 +291,8 @@ if __name__ == '__main__':
         if isinstance(exp, list):
             return '(' + ' '.join(map(schemestr, exp)) + ')'
         else:
-            try: return str(exp)
+            try:
+                return str(exp)
             except TypeError:
                 return str(exp)
 
