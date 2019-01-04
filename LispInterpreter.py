@@ -1,8 +1,10 @@
+import sys
 import math
 import operator as op
 from collections import ChainMap as Environment
 
-special_strings = ["define", "if", "lambda"]
+special_strings = ["define", "if", "lambda", "quote"]
+sys.setrecursionlimit(2000)
 
 
 class Procedure(object):
@@ -32,6 +34,7 @@ def standard_env():
         '<=': op.le,
         '=': op.eq,
         'abs': abs,
+        'expt':op.pow,
         'append': op.add,
         'apply': lambda proc, args: proc(*args),
         'begin': lambda *x: x[-1],
@@ -138,12 +141,16 @@ def get_lambda_attr(s, env):
     return attr, s
 
 
+def get_parms(s, env):
+
+
+
 def lambda_parser(s, env):
 
     parms, s = get_lambda_attr(s, env)
     body, s = get_lambda_attr(s, env)
     parms = list(parms.split())
-    parms = parms[1]
+    parms = gt_parms(parms)
     _, s = get_token(s)
     print("parms: ", parms, "body: ", body, "s: ", s)
     return Procedure(parms, body, env), s
@@ -151,11 +158,33 @@ def lambda_parser(s, env):
 
 def define_parser(s, env):
     var, s = get_token(s)
+    print("var: ", var, "s: ", s)
     exp, s = get_token(s)
+    print("exp: ", exp, "s: ", s)
     eval_exp, s = parser(exp, s, env)
+    print("eval_Exp: ", eval_exp, "s: ", s)
     env[var] = eval_exp
     _, s = get_token(s)
     return None, s
+
+
+def quote_parser(s):
+
+    print("s: ", s)
+    iden, s = get_token(s)
+    print("iden: ", iden, "s: ", s)
+    if iden == '(':
+        y = iden
+        while len(s) > 0 and y != ')':
+            y, s = get_token(s)
+            print("y: ", y, "s: ", s)
+            iden = iden + y + ' '
+            print("iden: ", iden)
+
+    _, s = get_token(s)
+
+    print("iden: ", iden, "s: ", s)
+    return iden, s
 
 
 def eval_exp(s, env):
@@ -196,6 +225,7 @@ def parser(token, s, env):
 
     x = num_parser(token)
     print("x: ", x)
+
     if isinstance(x, (int, float)):
         return x, s
 
@@ -207,6 +237,9 @@ def parser(token, s, env):
 
     elif x == 'if':
         return if_parser(s, env)
+
+    elif x == 'quote':
+        return quote_parser(s)
 
     elif x == '(':
         y, s = eval_exp(s, env)
