@@ -4,7 +4,7 @@ import operator as op
 from collections import ChainMap as Environment
 
 special_strings = ["define", "if", "lambda", "quote"]
-arith_op = [op.add, op.sub, op.mul]
+arith_op = [op.add, op.sub, op.mul, op.truediv, op.gt]
 sys.setrecursionlimit(2000)
 
 
@@ -35,13 +35,13 @@ def standard_env():
         '<=': op.le,
         '=': op.eq,
         'abs': abs,
-        'expt':op.pow,
+        'expt': op.pow,
         'append': op.add,
         'apply': lambda proc, args: proc(*args),
         'begin': lambda *x: x[-1],
         'car': lambda x: x[0],
         'cdr': lambda x: x[1:],
-        'cons': lambda x, y: [x] + y,
+        'cons': lambda x, y: [x]+y,
         'eq?': op.is_,
         'equal?': op.eq,
         'length': len,
@@ -97,13 +97,37 @@ def fun(attr, temp, s):
     return attr, s
 
 
-def get_if_attr(s, env):
+"""def get_if_attr(s, env):
 
     attr, s = get_token(s)
     if attr == '(':
         attr, s = fun(attr, '', s)
         attr = attr.replace('(', ' ( ').replace(')', ' ) ')
         token, strn = get_token(attr)
+        print("if_attr: ", attr)
+        attr_eval, _ = parser(token, strn, env)
+
+    else:
+        attr_eval, _ = parser(attr, s, env)
+
+    return attr_eval, s"""
+
+
+def get_if_attr(s, env):
+
+    attr, s = get_token(s)
+    if attr == '(':
+        count = 1
+        while count != 0:
+            id, s = get_token(s)
+            attr = attr + ' ' + id
+            if id == '(':
+                count += 1
+            elif id == ')':
+                count -= 1
+
+        token, strn = get_token(attr)
+        print("if_attr: ", attr)
         attr_eval, _ = parser(token, strn, env)
 
     else:
@@ -115,6 +139,7 @@ def get_if_attr(s, env):
 def if_parser(s, env):
 
     test, s = get_if_attr(s, env)
+    print("test: ", test)
 
     if test:
         conseq, s = get_if_attr(s, env)
@@ -122,6 +147,7 @@ def if_parser(s, env):
         if attr == '(':
             attr, s = fun(attr, '', s)
         _, s = get_token(s)
+        print("conseq: ", conseq)
         return conseq, s
 
     attr, s = get_token(s)
@@ -129,15 +155,39 @@ def if_parser(s, env):
         attr, s = fun(attr, '', s)
     alt, s = get_if_attr(s, env)
     _, s = get_token(s)
+    print("alt: ", alt)
     return alt, s
 
 
-def get_lambda_attr(s, env):
+"""def get_lambda_attr(s, env):
     attr, s = get_token(s)
     if attr == '(':
         attr, s = fun(attr, '', s)
         attr = attr.replace('(', ' ( ').replace(')', ' ) ')
         # print("attr after: ", attr)
+
+    return attr, s"""
+
+
+"""def get_parms(parms):
+    id, s = get_token(parms)
+    parm = []
+    while id != ')':
+        
+        parm.append(id)"""
+
+
+def get_lambda_attr(s, env):
+    attr, s = get_token(s)
+    if attr == '(':
+        count = 1
+        while count != 0:
+            id, s = get_token(s)
+            attr = attr + ' ' + id
+            if id == '(':
+                count += 1
+            elif id == ')':
+                count -= 1
 
     return attr, s
 
@@ -146,8 +196,11 @@ def lambda_parser(s, env):
 
     parms, s = get_lambda_attr(s, env)
     body, s = get_lambda_attr(s, env)
+    print("parms: ", parms)
     parms = list(parms.split())
-    parms = gt_parms(parms)
+    print("parms_list: ", parms, "type: ", type(parms))
+    parms.remove('(')
+    parms.remove(')')
     _, s = get_token(s)
     print("parms: ", parms, "body: ", body, "s: ", s)
     return Procedure(parms, body, env), s
@@ -165,7 +218,7 @@ def define_parser(s, env):
     return None, s
 
 
-def quote_parser(s):
+"""def quote_parser(s):
 
     print("s: ", s)
     iden, s = get_token(s)
@@ -181,6 +234,27 @@ def quote_parser(s):
     _, s = get_token(s)
 
     print("iden: ", iden, "s: ", s)
+    return iden, s"""
+
+
+def quote_parser(s):
+
+    print("s: ", s)
+    iden, s = get_token(s)
+    print("iden: ", iden, "s: ", s)
+    if iden == '(':
+        quote_list = []
+        while iden != ')':
+            if iden != '(' and iden != ')':
+                quote_list.append(iden)
+
+            iden, s = get_token(s)
+
+        _, s = get_token(s)
+        print("quote_list: ", quote_list, "s: ", s)
+        return quote_list, s
+
+    _, s = get_token(s)
     return iden, s
 
 
@@ -207,7 +281,15 @@ def eval_exp(s, env):
     while len(token) > 0 and token != ')':
         print("tokena: ", token)
         x, s = parser(token, s, env)
-        args.append(x)
+        if x is True:
+            args.append(1)
+        elif x is False:
+            args.append(0)
+        elif x is None:
+            print("Yoyoyooooooooooooo")
+        else:
+            args.append(x)
+
         print("args: ", args)
         token, s = get_token(s)
 
@@ -254,7 +336,7 @@ def parser(token, s, env):
 
     elif x == ')':
         print("Unexpected )")
-        return None
+        return None, s
 
     else:
         if x == '':
