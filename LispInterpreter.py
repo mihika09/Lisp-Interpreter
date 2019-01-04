@@ -4,7 +4,7 @@ import operator as op
 from collections import ChainMap as Environment
 
 special_strings = ["define", "if", "lambda", "quote"]
-arith_op = [op.add, op.sub, op.mul, op.truediv, op.gt]
+arith_op = [op.add, op.sub, op.mul, op.truediv]
 sys.setrecursionlimit(2000)
 
 
@@ -25,18 +25,9 @@ def standard_env():
     env = {}
     env.update(vars(math))  # sin, cos, sqrt, pi, ...
     env.update({
-        '+': op.add,
-        '-': op.sub,
-        '*': op.mul,
-        '/': op.truediv,
-        '>': op.gt,
-        '<': op.lt,
-        '>=': op.ge,
-        '<=': op.le,
-        '=': op.eq,
-        'abs': abs,
-        'expt': op.pow,
-        'append': op.add,
+        '+': op.add, '-': op.sub, '*': op.mul, '/': op.truediv,
+        '>': op.gt, '<': op.lt, '>=': op.ge, '<=': op.le,
+        '=': op.eq, 'abs': abs, 'expt': op.pow, 'append': op.add,
         'apply': lambda proc, args: proc(*args),
         'begin': lambda *x: x[-1],
         'car': lambda x: x[0],
@@ -97,22 +88,6 @@ def fun(attr, temp, s):
     return attr, s
 
 
-"""def get_if_attr(s, env):
-
-    attr, s = get_token(s)
-    if attr == '(':
-        attr, s = fun(attr, '', s)
-        attr = attr.replace('(', ' ( ').replace(')', ' ) ')
-        token, strn = get_token(attr)
-        print("if_attr: ", attr)
-        attr_eval, _ = parser(token, strn, env)
-
-    else:
-        attr_eval, _ = parser(attr, s, env)
-
-    return attr_eval, s"""
-
-
 def get_if_attr(s, env):
 
     attr, s = get_token(s)
@@ -127,7 +102,6 @@ def get_if_attr(s, env):
                 count -= 1
 
         token, strn = get_token(attr)
-        print("if_attr: ", attr)
         attr_eval, _ = parser(token, strn, env)
 
     else:
@@ -139,42 +113,28 @@ def get_if_attr(s, env):
 def if_parser(s, env):
 
     test, s = get_if_attr(s, env)
-    print("test: ", test)
 
     if test:
         conseq, s = get_if_attr(s, env)
         attr, s = get_token(s)
         if attr == '(':
             attr, s = fun(attr, '', s)
-        _, s = get_token(s)
-        print("conseq: ", conseq)
+        x, s = get_token(s)
+        if x != ')':
+            print("Missing )")
+            return None, s
+
         return conseq, s
 
     attr, s = get_token(s)
     if attr == '(':
         attr, s = fun(attr, '', s)
     alt, s = get_if_attr(s, env)
-    _, s = get_token(s)
-    print("alt: ", alt)
+    x, s = get_token(s)
+    if x != ')':
+        print("Missing )")
+        return None, s
     return alt, s
-
-
-"""def get_lambda_attr(s, env):
-    attr, s = get_token(s)
-    if attr == '(':
-        attr, s = fun(attr, '', s)
-        attr = attr.replace('(', ' ( ').replace(')', ' ) ')
-        # print("attr after: ", attr)
-
-    return attr, s"""
-
-
-"""def get_parms(parms):
-    id, s = get_token(parms)
-    parm = []
-    while id != ')':
-        
-        parm.append(id)"""
 
 
 def get_lambda_attr(s, env):
@@ -196,52 +156,28 @@ def lambda_parser(s, env):
 
     parms, s = get_lambda_attr(s, env)
     body, s = get_lambda_attr(s, env)
-    print("parms: ", parms)
     parms = list(parms.split())
-    print("parms_list: ", parms, "type: ", type(parms))
     parms.remove('(')
     parms.remove(')')
     _, s = get_token(s)
-    print("parms: ", parms, "body: ", body, "s: ", s)
     return Procedure(parms, body, env), s
 
 
 def define_parser(s, env):
     var, s = get_token(s)
-    print("var: ", var, "s: ", s)
     exp, s = get_token(s)
-    print("exp: ", exp, "s: ", s)
     eval_exp, s = parser(exp, s, env)
-    print("eval_Exp: ", eval_exp, "s: ", s)
+    x, s = get_token(s)
+    if x != ')':
+        print("Missing )")
+        return None, s
     env[var] = eval_exp
-    _, s = get_token(s)
     return None, s
-
-
-"""def quote_parser(s):
-
-    print("s: ", s)
-    iden, s = get_token(s)
-    print("iden: ", iden, "s: ", s)
-    if iden == '(':
-        y = iden
-        while len(s) > 0 and y != ')':
-            y, s = get_token(s)
-            print("y: ", y, "s: ", s)
-            iden = iden + y + ' '
-            print("iden: ", iden)
-
-    _, s = get_token(s)
-
-    print("iden: ", iden, "s: ", s)
-    return iden, s"""
 
 
 def quote_parser(s):
 
-    print("s: ", s)
     iden, s = get_token(s)
-    print("iden: ", iden, "s: ", s)
     if iden == '(':
         quote_list = []
         while iden != ')':
@@ -251,7 +187,6 @@ def quote_parser(s):
             iden, s = get_token(s)
 
         _, s = get_token(s)
-        print("quote_list: ", quote_list, "s: ", s)
         return quote_list, s
 
     _, s = get_token(s)
@@ -261,15 +196,12 @@ def quote_parser(s):
 def eval_exp(s, env):
 
     token, s = get_token(s)
-    print("tokenp: ", token)
     if token == ')':
-        return '()'
+        return '()', s
 
     proc, s = parser(token, s, env)
-    print("proc: ", proc, "s: ", s)
 
     if token in special_strings:
-        print("Hey")
         return proc, s
 
     token, s = get_token(s)
@@ -279,7 +211,6 @@ def eval_exp(s, env):
 
     args = []
     while len(token) > 0 and token != ')':
-        print("tokena: ", token)
         x, s = parser(token, s, env)
         if x is True:
             args.append(1)
@@ -288,14 +219,10 @@ def eval_exp(s, env):
         elif x is not None:
             args.append(x)
 
-        print("args: ", args)
         token, s = get_token(s)
 
     if token != ')':
-        print("Invalid InputMissing )")
         return None, s
-
-    print("proc: ", proc, "args: ", args)
 
     if proc in arith_op:
         i = args[0]
@@ -311,12 +238,14 @@ def eval_exp(s, env):
 def parser(token, s, env):
 
     x = num_parser(token)
-    print("x: ", x)
 
     if isinstance(x, (int, float)):
         return x, s
 
-    if x == 'define':
+    elif x in env:
+            return env[x], s
+
+    elif x == 'define':
         return define_parser(s, env)
 
     elif x == 'lambda':
@@ -336,13 +265,12 @@ def parser(token, s, env):
         print("Unexpected )")
         return None, s
 
-    else:
-        if x == '':
+    elif x == '':
             exit()
-        try:
-            return env[x], s
-        except KeyError:
-            return x, s
+
+    else:
+        print("Undefined symbol: ", x)
+        return None, s
 
 
 if __name__ == '__main__':
@@ -357,10 +285,9 @@ if __name__ == '__main__':
             while len(s) > 0 and s[0] == ' ':
                 s = s[1:]
 
-            print("s: ", s)
             if len(s) == 0:
                 if result is not None:
-                    print("result: ", schemestr(result))
+                    print(schemestr(result))
 
             else:
                 print("Invalid Inputs")
