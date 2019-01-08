@@ -243,7 +243,7 @@ def parser(token, s, env):
         return x, s
 
     elif x in env:
-            return env[x], s
+        return env[x], s
 
     elif x == 'define':
         return define_parser(s, env)
